@@ -25,6 +25,10 @@ litehtml::render_item::render_item(std::shared_ptr<element>  _src_el) :
     m_borders.right		= doc->to_pixels(src_el()->css().get_borders().right.width,  fm, 0);
     m_borders.top		= doc->to_pixels(src_el()->css().get_borders().top.width,    fm, 0);
     m_borders.bottom	= doc->to_pixels(src_el()->css().get_borders().bottom.width, fm, 0);
+
+	// Calculate visibility 
+	m_visible = !(m_skip || src_el()->css().get_display() == display_none || src_el()->css().get_visibility() != visibility_visible);
+
 }
 
 litehtml::pixel_t litehtml::render_item::render(pixel_t x, pixel_t y, const containing_block_context& containing_block_size, formatting_context* fmt_ctx, bool second_pass)

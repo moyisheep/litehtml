@@ -27,6 +27,7 @@ namespace litehtml
         margins						                m_borders;
         position					                m_pos;
         bool                                        m_skip;
+        bool                                        m_visible;
         std::vector<std::shared_ptr<render_item>>   m_positioned;
     	std::shared_ptr<scroll_view>				m_scroll_view;
 
@@ -419,7 +420,7 @@ namespace litehtml
 
         bool is_visible() const
         {
-            return !(m_skip || src_el()->css().get_display() == display_none || src_el()->css().get_visibility() != visibility_visible);
+            return m_visible;
         }
 
 		bool is_flex_item() const
