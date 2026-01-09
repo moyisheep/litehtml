@@ -26,9 +26,16 @@ litehtml::render_item::render_item(std::shared_ptr<element>  _src_el) :
     m_borders.top		= doc->to_pixels(src_el()->css().get_borders().top.width,    fm, 0);
     m_borders.bottom	= doc->to_pixels(src_el()->css().get_borders().bottom.width, fm, 0);
 
-	// Calculate visibility 
-	m_visible = !(m_skip || src_el()->css().get_display() == display_none || src_el()->css().get_visibility() != visibility_visible);
-
+	t_display		= src_el()->css().get_display();
+	t_visibility	= src_el()->css().get_visibility();
+	t_positioned	= src_el()->is_positioned();
+	t_zindex		= src_el()->css().get_z_index();
+	t_position		= src_el()->css().get_position();
+	t_inline		= src_el()->is_inline();
+	t_float			= src_el()->css().get_float();
+	t_doc			= src_el()->get_document();
+	t_overflow		= src_el()->css().get_overflow();
+	t_visible		=!(m_skip || t_display == display_none || t_visibility != visibility_visible);
 }
 
 litehtml::pixel_t litehtml::render_item::render(pixel_t x, pixel_t y, const containing_block_context& containing_block_size, formatting_context* fmt_ctx, bool second_pass)
@@ -36,6 +43,7 @@ litehtml::pixel_t litehtml::render_item::render(pixel_t x, pixel_t y, const cont
 	pixel_t ret;
 
 	calc_outlines(containing_block_size.width);
+
 
 	m_pos.clear();
 	m_pos.move_to(x, y);
@@ -818,12 +826,12 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
     pos.x += x - get_scroll_left();
     pos.y += y - get_scroll_top();
 
-    document::ptr doc = src_el()->get_document();
+   
 
-    if (src_el()->css().get_overflow() > overflow_visible)
+    if (t_overflow > overflow_visible)
     {
         // TODO: Process overflow for inline elements
-        if(src_el()->css().get_display() != display_inline)
+        if(t_display != display_inline)
         {
         	position clip_box = m_pos;
         	clip_box.x += x;
@@ -838,21 +846,22 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
             bdr_radius -= m_borders;
             bdr_radius -= m_padding;
 
-            doc->container()->set_clip(clip_box, bdr_radius);
+            t_doc->container()->set_clip(clip_box, bdr_radius);
         }
     }
 
     for (const auto& el : m_children)
     {
-        if (el->is_visible())
+
+        if (el->t_visible)
         {
             bool process = true;
             switch (flag)
             {
                 case draw_positioned:
-                    if (el->src_el()->is_positioned() && el->src_el()->css().get_z_index() == zindex)
+                    if (el->t_positioned && el->t_zindex == zindex)
                     {
-                        if (el->src_el()->css().get_position() == element_position_fixed)
+                        if (el->t_position == element_position_fixed)
 						{
 							// Fixed elements position is always relative to the (0,0)
                             el->src_el()->draw(hdc, 0, 0, clip, el);
@@ -867,13 +876,13 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                     }
                     break;
                 case draw_block:
-                    if (!el->src_el()->is_inline() && el->src_el()->css().get_float() == float_none && !el->src_el()->is_positioned())
+                    if (!el->t_inline && el->t_float == float_none && !el->t_positioned)
                     {
                         el->src_el()->draw(hdc, pos.x, pos.y, clip, el);
                     }
                     break;
                 case draw_floats:
-                    if (el->src_el()->css().get_float() != float_none && !el->src_el()->is_positioned())
+                    if (el->t_float != float_none && !el->t_positioned)
                     {
                         el->src_el()->draw(hdc, pos.x, pos.y, clip, el);
                         el->draw_stacking_context(hdc, pos.x, pos.y, clip, false);
@@ -881,10 +890,10 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
                     }
                     break;
                 case draw_inlines:
-                    if (el->src_el()->is_inline() && el->src_el()->css().get_float() == float_none && !el->src_el()->is_positioned())
+                    if (el->t_inline && el->t_float == float_none && !el->t_positioned)
                     {
                         el->src_el()->draw(hdc, pos.x, pos.y, clip, el);
-                        if (el->src_el()->css().get_display() == display_inline_block || el->src_el()->css().get_display() == display_inline_flex)
+                        if (el->t_display == display_inline_block || el->t_display == display_inline_flex)
                         {
                             el->draw_stacking_context(hdc, pos.x, pos.y, clip, false);
                             process = false;
@@ -899,16 +908,16 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
             {
                 if (flag == draw_positioned)
                 {
-                    if (!el->src_el()->is_positioned())
+                    if (!el->t_positioned)
                     {
                         el->draw_children(hdc, pos.x, pos.y, clip, flag, zindex);
                     }
                 }
                 else
                 {
-                    if (el->src_el()->css().get_float() == float_none &&
-                        el->src_el()->css().get_display() != display_inline_block &&
-                        !el->src_el()->is_positioned())
+                    if (el->t_float == float_none &&
+                        el->t_display != display_inline_block &&
+                        !el->t_positioned)
                     {
                         el->draw_children(hdc, pos.x, pos.y, clip, flag, zindex);
                     }
@@ -917,9 +926,9 @@ void litehtml::render_item::draw_children(uint_ptr hdc, pixel_t x, pixel_t y, co
         }
     }
 
-    if (src_el()->css().get_overflow() > overflow_visible)
+    if (t_overflow > overflow_visible)
     {
-        doc->container()->del_clip();
+        t_doc->container()->del_clip();
     }
 }
 

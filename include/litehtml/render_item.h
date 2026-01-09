@@ -11,6 +11,7 @@
 #include "formatting_context.h"
 #include "element.h"
 #include "scroll_view.h"
+#include "document.h"
 
 namespace litehtml
 {
@@ -27,9 +28,18 @@ namespace litehtml
         margins						                m_borders;
         position					                m_pos;
         bool                                        m_skip;
-        bool                                        m_visible;
         std::vector<std::shared_ptr<render_item>>   m_positioned;
     	std::shared_ptr<scroll_view>				m_scroll_view;
+        litehtml::style_display                     t_display;
+        litehtml::visibility                        t_visibility;
+        bool                                        t_positioned;
+        int                                         t_zindex;
+        litehtml::element_position                  t_position;
+        bool                                        t_inline;
+        litehtml::element_float                     t_float;
+        litehtml::overflow                          t_overflow;
+        litehtml::document::ptr                     t_doc;
+        bool                                        t_visible;
 
 		containing_block_context calculate_containing_block_context(const containing_block_context& cb_context);
 		void calc_cb_length(const css_length& len, pixel_t percent_base, containing_block_context::typed_pixel& out_value) const;
@@ -420,7 +430,7 @@ namespace litehtml
 
         bool is_visible() const
         {
-            return m_visible;
+            return !(m_skip || src_el()->css().get_display() == display_none || src_el()->css().get_visibility() != visibility_visible);
         }
 
 		bool is_flex_item() const
